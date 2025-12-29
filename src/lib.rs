@@ -31,7 +31,7 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 
 #[derive(Eq, PartialEq, Hash, Debug)]
-enum Token {
+pub enum Token {
     WildCard,
     Val(String),
 }
