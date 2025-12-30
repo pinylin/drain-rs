@@ -24,15 +24,20 @@
 #![warn(missing_debug_implementations, rust_2018_idioms, missing_docs)]
 use serde::de::{self, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
+/// Represents a token in the drain algorithm's log parsing process.
+/// Tokens are the basic units that make up log templates and can be either
+/// specific values or wildcards for variable parts of logs.
 #[derive(Eq, PartialEq, Hash, Debug)]
 pub enum Token {
+    /// Wildcard token `<*>` used to represent variable parts of logs
+    /// that can match any value. Used for combined nodes in the drain tree.
     WildCard,
+    /// Specific token value representing a constant part of a log message.
     Val(String),
 }
 
@@ -92,9 +97,14 @@ impl std::clone::Clone for Token {
     }
 }
 
+/// Represents the similarity between a log and a cluster.
+/// Used to determine if a log should be added to an existing cluster
+/// or create a new one.
 #[derive(PartialEq)]
 struct GroupSimilarity {
+    /// Number of approximate matches (wildcard matches).
     approximate_similarity: u32,
+    /// Exact similarity ratio (0.0 to 1.0).
     exact_similarity: f32,
 }
 
@@ -114,11 +124,14 @@ impl core::cmp::PartialOrd for GroupSimilarity {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-/// Represents a cluster of logs
+/// Represents a cluster of similar log messages in the drain algorithm.
+/// Each cluster contains a template of tokens and tracks how many logs
+/// have been matched to this pattern.
 pub struct LogCluster {
-    // The tokens representing this unique cluster
+    /// The sequence of tokens representing the log template for this cluster.
+    /// Wildcard tokens (`<*>`) represent variable parts of the log.
     pub log_tokens: Vec<Token>,
-    // The number logs matched
+    /// The number of log messages that have been matched to this cluster.
     pub num_matched: u64,
 }
 
@@ -290,7 +303,7 @@ impl Node {
             Node::Leaf(leaf) => leaf
                 .log_groups
                 .iter()
-                .map(|n| n.borrow())
+                .map(|n| n)
                 .collect::<Vec<&LogCluster>>(),
             Node::Inner(inner) => inner
                 .children
@@ -555,7 +568,7 @@ impl DrainTree {
         let s = m.get(df)?;
         Option::Some(String::from(s))
     }
-
+    #[allow(unused)]
     fn is_compiled(&self) -> bool {
         self.filter_patterns.len() == self.filter_patterns_str.len()
             && (self.overall_pattern.is_some() == self.overall_pattern_str.is_some())
